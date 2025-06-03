@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wave Interference Simulation</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #111;
+      color: white;
+    }
+    canvas {
+      background: black;
+      border: 1px solid #555;
+      margin-top: 20px;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #666;
+    }
+    #descriptionBox {
+      margin-top: 20px;
+      padding: 15px;
+      background: #222;
+      border: 1px solid #555;
+      border-radius: 10px;
+      width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Wave Interference Simulation</h1>
+  <div>
+    <button onclick="setMode('waveTypes')">Transverse & Longitudinal Waves</button>
+    <button onclick="setMode('standing')">Standing Wave</button>
+    <button onclick="setMode('destructive')">Destructive Interference</button>
+    <button onclick="setMode('constructive')">Constructive Interference</button>
+    <button onclick="setMode('diffraction')">Diffraction</button>
+    <button onclick="setMode('refraction')">Refraction</button>
+  </div>
+
+  <canvas id="waveCanvas" width="800" height="400"></canvas>
+
+  <div id="descriptionBox">
+    <p id="descriptionText">Welcome to the Wave Interference Simulation. Select a mode above to begin.</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('waveCanvas');
+    const ctx = canvas.getContext('2d');
+    const L = canvas.width;
+    let mode = 'standing';
+    let time = 0;
+
+    const amplitude = 100;
+    const waveSpeed = 2;
+    const standingwaveSpeed = 0.05;
+    const waveNumber = 5 * Math.PI / L;
+
+    const waveSpacing = 20;
+    const diffractedWaves = [];
+
+    function sech(x) {
+      return 2 / (Math.exp(x) + Math.exp(-x));
+    }
+
+    function setMode(newMode) {
+      mode = newMode;
+      time = 0;
+      diffractedWaves.length = 0;
+
+      const descriptionText = document.getElementById('descriptionText');
+      switch (newMode) {
+        case 'waveTypes':
+          descriptionText.innerText = "There are two main types of waves: transverse waves and longitudinal waves. Transverse waves, like those on a rope, have the disturbance moving at a right angle to the direction the wave is traveling. Longitudinal waves, like sound waves, have the disturbance moving in the same direction as the wave. Above shows the transverse wave with peaks and troughs and a longitudinal wave with compressions and rarefactions.";
+          break;
+        case 'standing':
+          descriptionText.innerText = "This is a standing wave which occurs when two waves of the same frequency and amplitude are moving in opposite directions and interfere with each other";
+          break;
+        case 'constructive':
+          descriptionText.innerText = "Constructive interference occurs when two waves combine to produce a larger amplitude.";
+          break;
+        case 'destructive':
+          descriptionText.innerText = "Destructive interference occurs when two waves with the same amplitude and opposite direction completely cancel each other out.";
+          break;
+        case 'diffraction':
+          descriptionText.innerText = "Above is a visualization of diffraction, the bending of waves around obstacles or through small openings. The greatest amount of diffraction occurs when the size of the gap and the wavelength are similar.";
+          break;
+        case 'refraction':
+          descriptionText.innerText = "This mode demonstrates wave refraction as it crosses a boundary between two mediums(n1 = Air and n2 = Water), changing the velocity and wavelength causing it to change direction.";
+          break;
+        default:
+          descriptionText.innerText = "Welcome to the Wave Interference Simulation. Select a mode above to begin.";
+      }
+    }
+
+    function drawWaveTypes() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const baselineY = canvas.height / 2;
+
+      const waveLength = 200;
+      const transAmplitude = 40;
+      const longParticleRadius = 7;
+      const particleSpacing = 18;
+      const numParticles = Math.floor(canvas.width / particleSpacing) + 2;
+
+      const speedTrans = 0.02;
+      const speedLong = 0.015;
+
+      ctx.strokeStyle = 'cyan';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x <= canvas.width; x++) {
+        const k = 2 * Math.PI / waveLength;
+        const omega = speedTrans * 2 * Math.PI;
+        const y = transAmplitude * Math.sin(k * x - omega * time);
+        if (x === 0) ctx.moveTo(x, baselineY - 80 + y);
+        else ctx.lineTo(x, baselineY - 80 + y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = 'white';
+      ctx.font = '20px sans-serif';
+      ctx.fillText("Transverse Wave", 20, baselineY - 150);
+
+      ctx.fillStyle = 'orange';
+      for (let i = 0; i < numParticles; i++) {
+        const k = 2 * Math.PI / waveLength;
+        const omega = speedLong * 2 * Math.PI;
+        const displacement = 10 * Math.sin(k * i * particleSpacing - omega * time);
+        const x = i * particleSpacing + displacement;
+        const y = baselineY + 80;
+
+        ctx.beginPath();
+        ctx.arc(x, y, longParticleRadius, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = 'white';
+      ctx.font = '20px sans-serif';
+      ctx.fillText("Longitudinal Wave", 20, baselineY + 130);
+    }
+
+    function drawWave() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'cyan';
+      ctx.beginPath();
+
+      if (mode === 'constructive' || mode === 'destructive' || mode === 'standing') {
+        for (let x = 0; x <= canvas.width; x++) {
+          let y;
+          if (mode === 'constructive') {
+            const wave1 = amplitude * sech((x - waveSpeed * time) / 50);
+            const wave2 = amplitude * sech((L - x - waveSpeed * time) / 50);
+            y = wave1 + wave2;
+          } else if (mode === 'destructive') {
+            const wave1 = amplitude * sech((x - waveSpeed * time) / 50);
+            const wave2 = -amplitude * sech((L - x - waveSpeed * time) / 50);
+            y = wave1 + wave2;
+          } else if (mode === 'standing') {
+            y = amplitude * Math.sin(waveNumber * x) * Math.cos(standingwaveSpeed * time);
+          }
+
+          const yPos = canvas.height / 2 - y;
+          if (x === 0) ctx.moveTo(x, yPos);
+          else ctx.lineTo(x, yPos);
+        }
+
+        ctx.stroke();
+      } else if (mode === 'diffraction') {
+        drawDiffraction();
+      } else if (mode === 'refraction') {
+        drawRefraction();
+      } else if (mode === 'waveTypes') {
+        drawWaveTypes();
+      }
+
+      time += 1;
+      requestAnimationFrame(drawWave);
+    }
+
+    function drawDiffraction() {
+      const barrierX = canvas.width / 2;
+      const gapSize = waveSpacing;
+      const gapCenter = canvas.height / 2;
+
+      ctx.fillStyle = 'gray';
+      ctx.fillRect(barrierX - 5, 0, 10, canvas.height / 2 - gapSize / 2);
+      ctx.fillRect(barrierX - 5, canvas.height / 2 + gapSize / 2, 10, canvas.height / 2 - gapSize / 2);
+
+      ctx.strokeStyle = 'cyan';
+      ctx.lineWidth = 1;
+
+      const leadingWaveX = time * waveSpeed;
+
+      for (let i = 0; i < 30; i++) {
+        const offset = leadingWaveX - i * waveSpacing;
+        if (offset >= 0 && offset < barrierX - 5) {
+          ctx.beginPath();
+          ctx.moveTo(offset, 0);
+          ctx.lineTo(offset, canvas.height);
+          ctx.stroke();
+        }
+
+        const waveHasReachedGap = Math.abs(offset - (barrierX + 5)) < waveSpeed;
+        const alreadyExists = diffractedWaves.some(w => w.id === i);
+        if (waveHasReachedGap && !alreadyExists) {
+          diffractedWaves.push({ id: i, startTime: time });
+        }
+      }
+
+      for (const wave of diffractedWaves) {
+        const radius = (time - wave.startTime) * waveSpeed;
+        if (radius > 0 && radius < canvas.width) {
+          ctx.beginPath();
+          ctx.arc(barrierX + 5, gapCenter, radius, -Math.PI / 2, Math.PI / 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function drawRefraction() {
+      const interfaceY = canvas.height / 2;
+      const origin = { x: 300, y: 0 };
+      const angle1 = Math.PI / 6;
+      const n1 = 1.0;
+      const n2 = 1.33;
+
+      const v1 = 3;
+      const v2 = v1 * (n1 / n2);
+
+      const dxToInterface = (interfaceY - origin.y) / Math.cos(angle1);
+      const xInterface = origin.x + Math.sin(angle1) * dxToInterface;
+      const yInterface = interfaceY;
+
+      const rayLengthIncident = time * v1;
+      const rayLengthRefracted = (time - dxToInterface / v1) * v2;
+
+      ctx.strokeStyle = 'white';
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(0, interfaceY);
+      ctx.lineTo(canvas.width, interfaceY);
+      ctx.stroke();
+
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = 'gray';
+      ctx.beginPath();
+      ctx.moveTo(xInterface, 0);
+      ctx.lineTo(xInterface, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.strokeStyle = 'cyan';
+      ctx.beginPath();
+      ctx.moveTo(origin.x, origin.y);
+      if (rayLengthIncident < dxToInterface) {
+        const x1 = origin.x + Math.sin(angle1) * rayLengthIncident;
+        const y1 = origin.y + Math.cos(angle1) * rayLengthIncident;
+        ctx.lineTo(x1, y1);
+      } else {
+        ctx.lineTo(xInterface, yInterface);
+      }
+      ctx.stroke();
+
+      if (rayLengthIncident >= dxToInterface) {
+        const sinTheta2 = Math.sin(angle1) * n1 / n2;
+        if (sinTheta2 <= 1) {
+          const angle2 = Math.asin(sinTheta2);
+          const x2 = xInterface + Math.sin(angle2) * rayLengthRefracted;
+          const y2 = yInterface + Math.cos(angle2) * rayLengthRefracted;
+
+          ctx.strokeStyle = 'orange';
+          ctx.beginPath();
+          ctx.moveTo(xInterface, yInterface);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          ctx.fillStyle = 'white';
+          ctx.font = '16px sans-serif';
+
+          const label1X = xInterface - 20 * Math.cos(angle1 / 2);
+          const label1Y = yInterface - 225 * Math.sin(angle1 / 2);
+          ctx.fillText('θ₁', label1X, label1Y);
+
+          const label2X = xInterface + 10 * Math.cos(angle2 / 2);
+          const label2Y = yInterface + 400 * Math.sin(angle2 / 2);
+          ctx.fillText('θ₂', label2X, label2Y);
+
+          ctx.fillText('n₁ = ' + n1.toFixed(2), 50, interfaceY - 20);
+          ctx.fillText('n₂ = ' + n2.toFixed(2), 50, interfaceY + 40);
+        }
+      }
+    }
+
+    drawWave();
+  </script>
+</body>
+</html>
